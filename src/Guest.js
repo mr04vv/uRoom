@@ -1,7 +1,6 @@
 /* eslint-disable no-undef */
 import React, {Component} from 'react';
 import styled from 'react-emotion'
-import './App.css';
 import Peer from 'skyway-js';
 
 
@@ -21,16 +20,19 @@ class Guest extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      peer: new Peer("mori", {key: '4ffb33b5-0205-43b1-ac53-ae0f39d8adea'}),
+      peer: new Peer({key: '4ffb33b5-0205-43b1-ac53-ae0f39d8adea'}),
       peerId: null,
-      vi: null,
-      vi2: null,
+      videoInput: null,
+      videoInput2: null,
       cc: null,
       cc2: null,
-      trck: null,
-      trck2: null,
-      ci: null,
-      ci2: null
+      tracker: null,
+      tracker2: null,
+      canvasInput: null,
+      canvasInput2: null,
+      position: null,
+      position2: null,
+      existingCall: null
     }
   }
 
@@ -38,14 +40,84 @@ class Guest extends Component {
     requestAnimationFrame(() => this.drawLoop()); // ここで毎フレームdrawLoopを呼び出すように設定します。
 
     if (this.state.cc != null && this.state.cc2 != null) {
-      this.state.cc.clearRect(0, 0, this.state.ci.width, this.state.ci.height); // 毎フレーム出力用のキャンバスをクリアします。これをしないと重ね書きのようになってしまいます。
-      this.state.cc2.clearRect(0, 0, this.state.ci2.width, this.state.ci2.height); // 毎フレーム出力用のキャンバスをクリアします。これをしないと重ね書きのようになってしまいます。
-      this.state.trck.draw(this.state.ci); // 判定結果をcanvasに描画します。
-      this.state.trck2.draw(this.state.ci2)
+      this.state.cc.clearRect(0, 0, this.state.canvasInput.width, this.state.canvasInput.height); // 毎フレーム出力用のキャンバスをクリアします。これをしないと重ね書きのようになってしまいます。
+      this.state.cc2.clearRect(0, 0, this.state.canvasInput2.width, this.state.canvasInput2.height); // 毎フレーム出力用のキャンバスをクリアします。これをしないと重ね書きのようになってしまいます。
+      this.state.tracker.draw(this.state.canvasInput); // 判定結果をcanvasに描画します。
+      this.state.tracker2.draw(this.state.canvasInput2)
     }
   }
 
+  addVideo(call, stream) {
+    $('#their-video').get(0).srcObject = stream;
+  }
+
+  setupMakeCallUI() {
+    $('#make-call').show();
+    $('#end-call').hide();
+  }
+
+  setupEndCallUI() {
+    $('#make-call').hide();
+    $('#end-call').show();
+  }
+
+  removeVideo(peerId) {
+    $('#' + peerId).remove();
+  }
+
+  setupCallEventHandlers(call) {
+
+    if (this.state.existingCall) {
+      this.state.existingCall.close();
+    }
+
+
+    this.setState({
+      existingCall: call
+    });
+    let self = this;
+    call.on('stream', function (stream) {
+      self.addVideo(call, stream);
+      self.setupEndCallUI();
+      $('#their-id').text(call.remoteId);
+    });
+
+    call.on('close', function () {
+      self.removeVideo(call.remoteId);
+      self.setupMakeCallUI();
+    });
+    // 省略
+  }
+
+  onRecvMessage(data) {
+    // on(data)
+    // var glCanvas = new Simple3("glcanvas2",data);
+
+    // 画面に受信したメッセージを表示
+  }
+
   componentDidMount() {
+
+    setTimeout(() => {
+      const call = this.state.peer.call(window.location.href.match(/(?<=guest\/)\w+/)[0], localStream);
+      this.setupCallEventHandlers(call);
+      console.log("now #make-call was clicked!");
+
+      //チャット用で追加
+      // 接続先のIDをフォームから取得する
+      let peer_id = window.location.href.match(/(?<=guest\/)\w+/)[0];
+
+      // 相手への接続を開始する
+      let conn = this.state.peer.connect(peer_id);
+
+      // 接続が完了した場合のイベントの設定
+      conn.on("open", function () {
+        console.log("connect success!!!");
+      });
+
+      // メッセージ受信イベントの設定
+      conn.on("data", this.onRecvMessage);
+    }, 1000);
     // const peer = new Peer("mori",{key: '4ffb33b5-0205-43b1-ac53-ae0f39d8adea'})
 
     this.state.peer.on('open', () => {
@@ -89,14 +161,16 @@ class Guest extends Component {
     let cc2 = canvasInput2.getContext('2d')
 
     this.setState({
-      vi: videoInput,
-      vi2: videoInput2,
-      trck: tracker,
-      trck2: tracker2,
-      ci: canvasInput,
-      ci2: canvasInput2,
+      videoInput: videoInput,
+      videoInput2: videoInput2,
+      tracker: tracker,
+      tracker2: tracker2,
+      canvasInput: canvasInput,
+      canvasInput2: canvasInput2,
       cc: cc,
-      cc2: cc2
+      cc2: cc2,
+      position: positions,
+      position2: positions2
     });
 
     this.drawLoop(this.state)
@@ -105,11 +179,11 @@ class Guest extends Component {
 
   render() {
     return (
-      <HostWrapper className="App2">
+      <HostWrapper className="App">
         <div id="content">
           <VideoInput id="inputVideo" width={400} height={300} muted="true" autoPlay>
           </VideoInput>
-          <VideoInput id="their-video" style={{display: 'none'}} width={400} height={300}
+          <VideoInput id="their-video" style={{transform: 'scaleX(-1)', display: 'none'}} width={400} height={300}
                       autoPlay/>
           <canvas ref={"canvas"} id="canvas" style={{transform: 'scaleX(-1)'}} width={400} height={300}/>
           <canvas ref={"cc"} id="canvas2" style={{transform: 'scaleX(-1)'}} width={400} height={300}/>

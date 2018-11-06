@@ -1,6 +1,5 @@
 /* eslint-disable no-undef */
 import React, {Component} from 'react';
-import './App.css';
 import {BrowserRouter as Router, Route, Switch} from "react-router-dom";
 
 import Host from './Host'
@@ -22,8 +21,8 @@ class App extends Component {
       <Router>
         <Switch>
           <Route exact path={"/"} component={Top}/>
-          <Route exact path={"/host/:hostId"} component={Host}/>
-          <Route exact path={"/guest/:guestId"} component={Guest}/>
+          <Route path={"/host/:hostId"} component={Host}/>
+          <Route path={"/guest/:guestId"} component={Guest}/>
         </Switch>
       </Router>
     );

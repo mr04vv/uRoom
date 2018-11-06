@@ -1,4 +1,5 @@
 import React, {Fragment} from 'react'
+import {Link} from 'react-router-dom'
 
 class Top extends React.Component {
 
@@ -54,6 +55,7 @@ class Top extends React.Component {
           <button className=" ui teal button  pure-button pure-button-success room-button" onClick={() => this.enterRoom()}>入室する
           </button>
         </form>
+        <Link to={"/host/ss"}>aaa</Link>
       </Fragment>
     )
   }
