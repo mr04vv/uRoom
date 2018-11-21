@@ -287,7 +287,7 @@ Simple3.prototype.draw = function (gl/*WebGLコンテキスト*/, that) {
 
 
   // サイズ(幅)
-  mmat.setWidth(2);
+  mmat.setWidth(that.scale.value);
 
   //
   // ポジション(X, Y)
@@ -428,7 +428,7 @@ Simple3.prototype.loadBytes = function (path, callback) {
 */
 Simple3.prototype.mylog = function (msg/*string*/) {
   var myconsole = document.getElementById("myconsole");
-  myconsole.innerHTML = myconsole.innerHTML
+  // myconsole.innerHTML = myconsole.innerHTML
   console.log(msg);
 };
 
@@ -439,3 +439,7 @@ Simple3.prototype.myerror = function (msg/*string*/) {
   console.error(msg);
   this.mylog("<span style='color:red'>" + msg + "</span>");
 };
+
+Simple3.prototype.delete = function (that) {
+  that.live2DModel.init()
+}

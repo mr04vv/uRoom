@@ -2,23 +2,110 @@
 import React, {Component} from 'react';
 import styled from 'react-emotion'
 import Peer from 'skyway-js';
+import logo from './d.png'
+import ReactLoading from 'react-loading';
+import {Link} from 'react-router-dom'
+import { withRouter } from 'react-router';
 
+const HostWrapper = styled("div")``
 
-let localStream = null;
-
-
-const HostWrapper = styled("div")`
-`;
-
+const Canvas = styled("canvas")`
+  display: none;
+`
 
 const VideoInput = styled("video")`
   transform: scaleX(-1);
 `;
 
+const VideoWrapper = styled("div")`
+  position: absolute;
+  opacity: 0;
+  top: 300px;
+`;
+
+const CanvasWrapper = styled("div")`
+  display: flex;
+  justify-content: space-around;
+  margin-top: 100px;
+  @media (max-width: 420px) {
+    flex-direction: column;
+    margin-top: 0;
+  }       
+`;
+
+const CharacterCanvas = styled("canvas")`
+  @media (max-width: 420px) {
+    width: 100%;
+    display: block;
+    margin: 0 auto;
+    width: 225px;
+  }  
+ width: 514px;
+`;
+
+const CharacterCanvas2 = styled("canvas")`
+ width: 514px;
+ margin-top: 60px;
+ @media (max-width: 420px) {
+    width: 100%;
+    display: block;
+    margin: 0 auto;
+    width: 250px;
+  }  
+`;
+
+const Wrapper = styled("div")`
+ border:dashed 1px #CCC;
+`;
+
+const LoadingWrapper = styled("div")`
+  position: absolute;
+  fill: white;
+  width: 20%;
+  margin: 225px;  
+  margin-top: 250px; 
+  @media (max-width: 420px) {
+    width: 80%;
+    margin: 150px; 
+    margin-top: 100px
+  }      
+`;
+
+const Box = styled("div")`
+    display: flex;
+    width: 75%;
+    justify-content: space-between;
+    margin: 10px auto;
+    padding: 0.5em 1em;
+    margin: 2em 0;
+    color: #FFF;
+    background: #00b5ad;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+    border-radius: 9px;
+    margin: 10px auto;
+
+`;
+
+const EndButton = styled("button")`
+  display: block;
+  margin: 20px auto;
+  width: 200px;
+  height: 30px;
+  border-radius: 3px;
+  color: white;
+  background-color: #00b5ad;
+  border: none;
+  font-weight: bold;
+`;
+
 class Guest extends Component {
 
   constructor(props) {
+    const body = document.getElementById("body")
+    body.style.backgroundImage = `url(${logo})`
+    body.style.backgroundSize = 'cover'
     super(props);
+    this.onRecvMessage = this.onRecvMessage.bind(this);
     this.state = {
       peer: new Peer({key: '4ffb33b5-0205-43b1-ac53-ae0f39d8adea'}),
       peerId: null,
@@ -32,7 +119,10 @@ class Guest extends Component {
       canvasInput2: null,
       position: null,
       position2: null,
-      existingCall: null
+      existingCall: null,
+      isLoading: false,
+      isLoadingHost: false,
+      conn: null
     }
   }
 
@@ -160,6 +250,7 @@ class Guest extends Component {
     });
 
     call.on('close', function () {
+      document.getElementById("glcanvas2").style.opacity = 0;
       self.removeVideo(call.remoteId);
       self.setupMakeCallUI();
     });
@@ -167,16 +258,29 @@ class Guest extends Component {
   }
 
   onRecvMessage(data) {
+    if(data == 'close') {
+      document.getElementById("glcanvas2").style.opacity = 0;
+      return
+    }
     // on(data)
-    // var glCanvas = new Simple3("glcanvas2",data);
+    document.getElementById("glcanvas2").style.opacity = 0;
 
+    this.setState({
+      isLoading: true
+    })
+    setTimeout(() => {
+      this.setState({
+        isLoading: false
+      })
+      document.getElementById("glcanvas2").style.opacity = 1;
+    },2000)
+    new Simple3("glcanvas2",data);
     // 画面に受信したメッセージを表示
   }
 
   componentDidMount() {
-
     var glcanvas = new Simple3("glcanvas", 0)
-    var glcanvas1 = new Simple3("glcanvas2", 0)
+
 
     setTimeout(() => {
       const call = this.state.peer.call(window.location.href.match(/(?<=guest\/)\w+/)[0], localStream);
@@ -189,15 +293,28 @@ class Guest extends Component {
 
       // 相手への接続を開始する
       let conn = this.state.peer.connect(peer_id);
+      this.setState({
+        conn: conn
+      })
+
+      let self = this;
 
       // 接続が完了した場合のイベントの設定
       conn.on("open", function () {
         console.log("connect success!!!");
+
       });
 
       // メッセージ受信イベントの設定
       conn.on("data", this.onRecvMessage);
     }, 1000);
+
+    setTimeout(() => {
+      this.setState({
+        isLoading: false
+      })
+      document.getElementById("glcanvas2").style.opacity = 1;
+    })
     // const peer = new Peer("mori",{key: '4ffb33b5-0205-43b1-ac53-ae0f39d8adea'})
 
     this.state.peer.on('open', () => {
@@ -206,6 +323,7 @@ class Guest extends Component {
       })
     });
 
+    let localStream
     navigator.mediaDevices.getUserMedia({video: {width: 200, height: 200}, audio: true})
       .then(function (stream) {
         document.getElementById("inputVideo").srcObject = stream;
@@ -217,8 +335,8 @@ class Guest extends Component {
       return;
     });
 
-    let videoInput = document.getElementById('their-video');
-    let videoInput2 = document.getElementById('inputVideo')
+    let videoInput2 = document.getElementById('their-video');
+    let videoInput = document.getElementById('inputVideo')
     let tracker = new clm.tracker();
     tracker.init(pModel);
     let tracker2 = new clm.tracker();
@@ -256,21 +374,74 @@ class Guest extends Component {
     this.drawLoop()
   }
 
+  changeCharacter(e) {
+    new Simple3("glcanvas",e.target.value);
+    this.setState({
+      isLoadingHost: true
+    });
+    document.getElementById("glcanvas").style.opacity = 0;
+    setTimeout(() => {
+      this.setState({
+        isLoadingHost: false
+      })
+      document.getElementById("glcanvas").style.opacity = 1;
+    }, 1500);
+    if (this.state.existingCall) {
+      this.state.conn.send(e.target.value);
+    }
+  }
+
+  endCall() {
+    this.state.conn.send('close');
+    setTimeout(() => {
+      this.state.peer.disconnect()
+      this.state.existingCall.close();
+      window.location.href = 'https://uroom-49e1a.firebaseapp.com'
+    },500)
+  }
 
   render() {
     return (
       <HostWrapper className="App">
-        <div id="content">
+        <VideoWrapper id="content">
           <VideoInput id="inputVideo" width={300} height={300} muted="true" autoPlay>
           </VideoInput>
           <VideoInput id="their-video" style={{transform: 'scaleX(-1)', display: 'none'}} width={300} height={300}
                       autoPlay/>
-          <canvas ref={"canvas"} id="canvas" style={{transform: 'scaleX(-1)'}} width={400} height={300}/>
-          <canvas ref={"cc"} id="canvas2" style={{transform: 'scaleX(-1)'}} width={400} height={300}/>
-        </div>
-        <canvas id={"glcanvas"}/>
-        <canvas id={"glcanvas2"} width="300" height="300"/>
-
+          <Canvas ref={"canvas"} id="canvas" style={{transform: 'scaleX(-1)'}} width={350} height={300}/>
+          <Canvas ref={"cc"} id="canvas2" style={{transform: 'scaleX(-1)'}} width={350} height={300}/>
+        </VideoWrapper>
+        <CanvasWrapper>
+          <Wrapper>
+            {this.state.isLoadingHost &&
+            <LoadingWrapper>
+              <ReactLoading type={'spinningBubbles'} color={'white'} height={'20%'} width={'30%'}/>
+            </LoadingWrapper>}
+            <Box style={{textAlign: 'center', color: 'white', fontWeight: 'bold'}}>
+              キャラクターを変更する
+              <select name="example" className="selecter1" onChange={(e) => this.changeCharacter(e)}>
+                <option value={0}>女の子</option>
+                <option value={1}>男の子</option>
+                <option value={2}>初音ミク</option>
+                <option value={3}>少女</option>
+                <option value={4}>女子高生</option>
+                <option value={5}>わんこ</option>
+              </select>
+            </Box>
+            <CharacterCanvas id={"glcanvas"}/>
+          </Wrapper>
+          <Wrapper>
+            {this.state.isLoading &&
+            <LoadingWrapper>
+              <ReactLoading type={'spinningBubbles'} color={'white'} height={'20%'} width={'30%'}/>
+            </LoadingWrapper>}
+            <CharacterCanvas2 id={"glcanvas2"} width="300" height="300">
+            </CharacterCanvas2>
+          </Wrapper>
+        </CanvasWrapper>
+        <EndButton
+          onClick={() => this.endCall()}>通話を終了する
+        </EndButton>
         <div style={{display: 'none'}}>
           PARAM_Y<input type="range" id="L2D_Y" defaultValue="0.0" min="-70.0" max="70.0" step="1.0"/>
 
@@ -302,15 +473,15 @@ class Guest extends Component {
           mr<input type="range" id="mr2" defaultValue="0.0" min="-1.0" max="1.0" step="1.0"/>
           mo<input type="range" id="mo2" defaultValue="0.0" min="-1.0" max="2.0" step="0.5"/>
           <br/>
-          サイズ<input type="range" id="SCALE2" defaultValue="1.5" min="0.0" max="5.0" step="0.1"/>
+          サイズ<input type="range" id="SCALE2" defaultValue="3.0" min="0.0" max="5.0" step="0.1"/>
           <br/>
           位置X<input type="range" id="POS_X2" defaultValue="0.0" min="-3.0" max="3.0" step="0.1"/>
           <br/>
           位置Y<input type="range" id="POS_Y2" defaultValue="0.0" min="-3.0" max="3.0" step="0.1"/>
         </div>
+
       </HostWrapper>
-    );
-  }
+    )}
 }
 
-export default Guest;
+export default withRouter(Guest);
