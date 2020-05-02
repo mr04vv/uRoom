@@ -9,8 +9,8 @@ import Top from './Top'
 
 class App extends Component {
 
-  constructor() {
-    super()
+  constructor(props: any) {
+    super(props)
     this.state = {
       peerId: null
     }
