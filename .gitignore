@@ -5,9 +5,6 @@
 /.pnp
 .pnp.js
 /firebase
-/public/assets/*
-/public/live*
-/public/Live*
 # testing
 /coverage
 
